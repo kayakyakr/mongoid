@@ -68,6 +68,8 @@ module Mongoid
                     options = persistence_options || {}
                     if :belongs_to == metadata.macro
                       relation.with(options).save if changed_for_autosave?(relation)
+                    elsif relation.respond_to?(:each)
+                      relation.each { |d| d.with(options).save if changed_for_autosave?(d) }
                     else
                       Array(relation).each { |d| d.with(options).save if changed_for_autosave?(d) }
                     end
