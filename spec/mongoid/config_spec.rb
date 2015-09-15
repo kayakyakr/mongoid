@@ -15,7 +15,7 @@ describe Mongoid::Config do
       described_class.connect_to(database_id, read: :primary)
     end
 
-    context "when a default session config exists" do
+    context "when a default client config exists" do
 
       context "when a default database is configured" do
 
@@ -29,7 +29,7 @@ describe Mongoid::Config do
         end
 
         before do
-          described_class.send(:sessions=, config)
+          described_class.send(:clients=, config)
         end
 
         it "returns true" do
@@ -38,10 +38,10 @@ describe Mongoid::Config do
       end
     end
 
-    context "when no default session config exists" do
+    context "when no default client config exists" do
 
       before do
-        described_class.sessions.clear
+        described_class.clients.clear
       end
 
       it "returns false" do
@@ -73,19 +73,19 @@ describe Mongoid::Config do
       File.join(File.dirname(__FILE__), "..", "config", "mongoid.yml")
     end
 
-    context "when existing sessions exist in the configuration" do
+    context "when existing clients exist in the configuration" do
 
-      let(:session) do
+      let(:client) do
         Mongo::Client.new([ "127.0.0.1:27017" ])
       end
 
       before do
-        Mongoid::Threaded.sessions[:test] = session
+        Mongoid::Clients.clients[:test] = client
         described_class.load!(file, :test)
       end
 
-      it "clears the previous sessions" do
-        expect(Mongoid::Threaded.sessions[:test]).to be_nil
+      it "clears the previous clients" do
+        expect(Mongoid::Clients.clients[:test]).to be_nil
       end
     end
 
@@ -174,7 +174,7 @@ describe Mongoid::Config do
         end
       end
 
-      context "when session configurations are provided" do
+      context "when client configurations are provided" do
 
         context "when a default is provided" do
 
@@ -183,7 +183,7 @@ describe Mongoid::Config do
           end
 
           let(:default) do
-            described_class.sessions[:default]
+            described_class.clients[:default]
           end
 
           it "sets the default hosts" do
@@ -228,57 +228,57 @@ describe Mongoid::Config do
     end
   end
 
-  describe "#sessions=" do
+  describe "#clients=" do
 
-    context "when no sessions configuration exists" do
-
-      it "raises an error" do
-        expect {
-          described_class.send(:sessions=, nil)
-        }.to raise_error(Mongoid::Errors::NoSessionsConfig)
-      end
-    end
-
-    context "when no default session exists" do
+    context "when no clients configuration exists" do
 
       it "raises an error" do
         expect {
-          described_class.send(:sessions=, {})
-        }.to raise_error(Mongoid::Errors::NoDefaultSession)
+          described_class.send(:clients=, nil)
+        }.to raise_error(Mongoid::Errors::NoClientsConfig)
       end
     end
 
-    context "when a default session exists" do
+    context "when no default client exists" do
+
+      it "raises an error" do
+        expect {
+          described_class.send(:clients=, {})
+        }.to raise_error(Mongoid::Errors::NoDefaultClient)
+      end
+    end
+
+    context "when a default client exists" do
 
       context "when no hosts are provided" do
 
-        let(:sessions) do
+        let(:clients) do
           { "default" => { database: database_id }}
         end
 
         it "raises an error" do
           expect {
-            described_class.send(:sessions=, sessions)
-          }.to raise_error(Mongoid::Errors::NoSessionHosts)
+            described_class.send(:clients=, clients)
+          }.to raise_error(Mongoid::Errors::NoClientHosts)
         end
       end
 
       context "when no database is provided" do
 
-        let(:sessions) do
+        let(:clients) do
           { "default" => { hosts: [ "127.0.0.1:27017" ] }}
         end
 
         it "raises an error" do
           expect {
-            described_class.send(:sessions=, sessions)
-          }.to raise_error(Mongoid::Errors::NoSessionDatabase)
+            described_class.send(:clients=, clients)
+          }.to raise_error(Mongoid::Errors::NoClientDatabase)
         end
       end
 
       context "when a uri and standard options are provided" do
 
-        let(:sessions) do
+        let(:clients) do
           { "default" =>
             { hosts: [ "127.0.0.1:27017" ], uri: "mongodb://127.0.0.1:27017" }
           }
@@ -286,8 +286,8 @@ describe Mongoid::Config do
 
         it "raises an error" do
           expect {
-            described_class.send(:sessions=, sessions)
-          }.to raise_error(Mongoid::Errors::MixedSessionConfiguration)
+            described_class.send(:clients=, clients)
+          }.to raise_error(Mongoid::Errors::MixedClientConfiguration)
         end
       end
     end

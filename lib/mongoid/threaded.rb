@@ -6,10 +6,24 @@ module Mongoid
   # This module contains logic for easy access to objects that have a lifecycle
   # on the current thread.
   module Threaded
+
     DATABASE_OVERRIDE_KEY = "[mongoid]:db-override"
-    SESSIONS_KEY = "[mongoid]:sessions"
-    SESSION_OVERRIDE_KEY = "[mongoid]:session-override"
-    SCOPE_STACK_KEY = "[mongoid]:scope-stack"
+
+    # Constant for the key to store clients.
+    #
+    # @since 5.0.0
+    CLIENTS_KEY = "[mongoid]:clients"
+
+    # The key to override the client.
+    #
+    # @since 5.0.0
+    CLIENT_OVERRIDE_KEY = "[mongoid]:client-override"
+
+    # The key for the current thread's scope stack.
+    #
+    # @since 2.0.0
+    CURRENT_SCOPE_KEY = "[mongoid]:current-scope"
+
     AUTOSAVES_KEY = "[mongoid]:autosaves"
     VALIDATIONS_KEY = "[mongoid]:validations"
 
@@ -17,6 +31,7 @@ module Mongoid
       hash[key] = "[mongoid]:#{key}-stack"
     end
 
+    extend Gem::Deprecate
     extend self
 
     # Begin entry into a named thread local stack.
@@ -57,18 +72,6 @@ module Mongoid
     # @since 3.0.0
     def database_override=(name)
       Thread.current[DATABASE_OVERRIDE_KEY] = name
-    end
-
-    # Get the database sessions from the current thread.
-    #
-    # @example Get the database sessions.
-    #   Threaded.sessions
-    #
-    # @return [ Hash ] The sessions.
-    #
-    # @since 3.0.0
-    def sessions
-      Thread.current[SESSIONS_KEY] ||= {}
     end
 
     # Are in the middle of executing the named stack
@@ -161,42 +164,60 @@ module Mongoid
       validations_for(document.class).delete_one(document._id)
     end
 
-    # Get the global session override.
+    # Get the global client override.
     #
-    # @example Get the global session override.
-    #   Threaded.session_override
+    # @example Get the global client override.
+    #   Threaded.client_override
     #
     # @return [ String, Symbol ] The override.
     #
-    # @since 3.0.0
-    def session_override
-      Thread.current[SESSION_OVERRIDE_KEY]
+    # @since 5.0.0
+    def client_override
+      Thread.current[CLIENT_OVERRIDE_KEY]
     end
+    alias :session_override :client_override
+    deprecate :session_override, :client_override, 2015, 12
 
-    # Set the global session override.
+    # Set the global client override.
     #
-    # @example Set the global session override.
-    #   Threaded.session_override = :testing
+    # @example Set the global client override.
+    #   Threaded.client_override = :testing
     #
     # @param [ String, Symbol ] The global override name.
     #
     # @return [ String, Symbol ] The override.
     #
     # @since 3.0.0
-    def session_override=(name)
-      Thread.current[SESSION_OVERRIDE_KEY] = name
+    def client_override=(name)
+      Thread.current[CLIENT_OVERRIDE_KEY] = name
+    end
+    alias :session_override= :client_override=
+    deprecate :session_override=, :client_override=, 2015, 12
+
+    # Get the current Mongoid scope.
+    #
+    # @example Get the scope.
+    #   Threaded.current_scope
+    #
+    # @return [ Criteria ] The scope.
+    #
+    # @since 5.0.0
+    def current_scope
+      Thread.current[CURRENT_SCOPE_KEY]
     end
 
-    # Get the mongoid scope stack for chained criteria.
+    # Set the current Mongoid scope.
     #
-    # @example Get the scope stack.
-    #   Threaded.scope_stack
+    # @example Set the scope.
+    #   Threaded.current_scope = scope
     #
-    # @return [ Hash ] The scope stack.
+    # @param [ Criteria ] scope The current scope.
     #
-    # @since 2.1.0
-    def scope_stack
-      Thread.current[SCOPE_STACK_KEY] ||= {}
+    # @return [ Criteria ] The scope.
+    #
+    # @since 5.0.0
+    def current_scope=(scope)
+      Thread.current[CURRENT_SCOPE_KEY] = scope
     end
 
     # Is the document autosaved on the current thread?

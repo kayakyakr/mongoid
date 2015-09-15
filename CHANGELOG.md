@@ -11,25 +11,64 @@ For instructions on upgrading to newer versions, visit
 
 * Most driver specific configuration options have changed, please see [here](http://docs.mongodb.org/ecosystem/tutorial/ruby-driver-tutorial/#ruby-options) for the new options.
 
+* All references to `session` are now replaced with `client`. This includes the mongoid.yml configuration, `store_in` options, and all exceptions and modules with `Session` in the name.
+
 * `find_and_modify` has been removed and replaced with 3 options: `find_one_and_update`, `find_one_and_delete` and `find_one_and_replace`.
 
 * `text_search` has been removed as it is now a `$text` option in a query from 2.6 on.
 
 * Mongoid no longer supports MongoDB 2.2 - support is now for only 2.4 and higher.
 
+* \#3768 `first` and `last` no longer add an `_id` sort when no sorting options have been provided. In order to guarantee that a document is the first or last, it needs to now contain an explicit sort.
+
+* `Document#deleted?` alias has been removed, please continue to use `Document#destroyed?`.
+
 ### New Features
 
-* \#3846 Allow #pluck when none is used in criteria. (Braulio Martinez)
+* \#4016 Allow private and protected setters on fields for atomic operations. (Rob Smith)
 
 * \#3985 Return nil when using `{upsert: true}` in `find_and_modify` (Adrien Siami)
 
+* \#3963 Allow extended JSON object ids to be passed to `find`.
+
+* \#3846 Allow #pluck when none is used in criteria. (Braulio Martinez)
+
 ### Resolved Issues
 
+* \#4091 Use sublcass context when calling a scope defined in a superclass. (Edgars Beigarts)
+
+* \#4075 Made remove index logging specific to each index that was actually getting removed.
+
+* \#4071 Fixed loading of enumerable relation to check the added documents when iterating.
+
+* \#4077 Many relations now include Enumerable.
+
+* \#4052 Fixed uniqueness validation on localized fields with no value.
+
+* \#4033 Removed all uses of the $ positional operator in atomic updates.
+
+* \#4030 Dup/clone exceptions auto-include dynamic attributes.
+
+* \#4005 Fixed inclusion of mongoid with Rails components that don't have the Rails environment.
+
 * \#3993 Fixes issue where `dup`/`clone` fails for embedded documents that use store_as without using Mongoid::Atributes::Dynamic
+
+* \#3991 Fixed emebdded documents not flagging as changed after calling #changed? and modifying the
+child elements.
+
+* \#3874 Adding snapshot option to context.
+
+* \#3868 Loading models in rake tasks now expands the rails path.
+
+* \#3764 Fixed case statement check for enumerable targets.
 
 * \#3740 Fixes `Missing attribute: '_id'` error when using methods only or without (dx7)
 
 * \#3631 Fixes issue where `before_save` callback can get called twice after a child create
+
+* \#3599 Fixed application of default scopes from superclass in subclasses.
+
+* \#3104 Fixed enumerable targets to check first/last in proper order.
 
 ## 4.0.2
 

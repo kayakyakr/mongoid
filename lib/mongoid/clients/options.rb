@@ -1,11 +1,12 @@
 # encoding: utf-8
 module Mongoid
-  module Sessions
+  module Clients
     module Options
       extend ActiveSupport::Concern
+      extend Gem::Deprecate
 
       # Tell the next persistance operation to store in a specific collection,
-      # database or session.
+      # database or client.
       #
       # @example Save the current document to a different collection.
       #   model.with(collection: "secondary").save
@@ -13,17 +14,22 @@ module Mongoid
       # @example Save the current document to a different database.
       #   model.with(database: "secondary").save
       #
-      # @example Save the current document to a different session.
-      #   model.with(session: "replica_set").save
+      # @example Save the current document to a different client.
+      #   model.with(client: "replica_set").save
       #
       # @example Save with a combination of options.
-      #   model.with(session: "sharded", database: "secondary").save
+      #   model.with(client: "sharded", database: "secondary").save
+      #
+      # @note This method will instantiate a new client under the covers and
+      #   can be expensive. It is also recommended that the user manually
+      #   closes the extra client after using it, otherwise an excessive amount
+      #   of connections to the server will be eventually opened.
       #
       # @param [ Hash ] options The storage options.
       #
       # @option options [ String, Symbol ] :collection The collection name.
       # @option options [ String, Symbol ] :database The database name.
-      # @option options [ String, Symbol ] :session The session name.
+      # @option options [ String, Symbol ] :client The client name.
       #
       # @return [ Document ] The current document.
       #
@@ -37,17 +43,19 @@ module Mongoid
         @persistence_options
       end
 
-      def mongo_session
+      def mongo_client
         if persistence_options
-          if persistence_options[:session]
-            session = Sessions.with_name(persistence_options[:session])
+          if persistence_options[:client]
+            client = Clients.with_name(persistence_options[:client])
           else
-            session = Sessions.with_name(self.class.session_name)
-            session.use(self.class.database_name)
+            client = Clients.with_name(self.class.client_name)
+            client.use(self.class.database_name)
           end
-          session.with(persistence_options)
+          client.with(persistence_options.reject{ |k, v| k == :collection || k == :client })
         end
       end
+      alias :mongo_session :mongo_client
+      deprecate :mongo_session, :mongo_client, 2015, 12
 
       def collection_name
         if persistence_options && v = persistence_options[:collection]
@@ -91,14 +99,17 @@ module Mongoid
       end
 
       module ClassMethods
+        extend Gem::Deprecate
         include Threaded
 
-        def session_name
-          if persistence_options && v = persistence_options[:session]
+        def client_name
+          if persistence_options && v = persistence_options[:client]
             return v.to_sym
           end
           super
         end
+        alias :session_name :client_name
+        deprecate :session_name, :client_name, 2015, 12
 
         def collection_name
           if persistence_options && v = persistence_options[:collection]
@@ -115,7 +126,7 @@ module Mongoid
         end
 
         # Tell the next persistance operation to store in a specific collection,
-        # database or session.
+        # database or client.
         #
         # @example Create a document in a different collection.
         #   Model.with(collection: "secondary").create(name: "test")
@@ -123,17 +134,17 @@ module Mongoid
         # @example Create a document in a different database.
         #   Model.with(database: "secondary").create(name: "test")
         #
-        # @example Create a document in a different session.
-        #   Model.with(session: "secondary").create(name: "test")
+        # @example Create a document in a different client.
+        #   Model.with(client: "secondary").create(name: "test")
         #
         # @example Create with a combination of options.
-        #   Model.with(session: "sharded", database: "secondary").create
+        #   Model.with(client: "sharded", database: "secondary").create
         #
         # @param [ Hash ] options The storage options.
         #
         # @option options [ String, Symbol ] :collection The collection name.
         # @option options [ String, Symbol ] :database The database name.
-        # @option options [ String, Symbol ] :session The session name.
+        # @option options [ String, Symbol ] :client The client name.
         #
         # @return [ Class ] The model class.
         #

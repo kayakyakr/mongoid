@@ -4,7 +4,6 @@ require "mongoid/criteria/inspectable"
 require "mongoid/criteria/marshalable"
 require "mongoid/criteria/modifiable"
 require "mongoid/criteria/scopable"
-require "mongoid/sessions/options"
 
 module Mongoid
 
@@ -23,7 +22,7 @@ module Mongoid
     include Marshalable
     include Modifiable
     include Scopable
-    include Sessions::Options
+    include Clients::Options
 
     # Static array used to check with method missing - we only need to ever
     # instantiate once.
@@ -342,6 +341,22 @@ module Mongoid
         super(*args.push(:_type))
       else
         super(*args)
+      end
+    end
+
+    # Set the read preference for the criteria.
+    #
+    # @example Set the read preference.
+    #   criteria.read(mode: :primary_preferred)
+    #
+    # @param [ Hash ] value The mode preference.
+    #
+    # @return [ Criteria ] The cloned criteria.
+    #
+    # @since 5.0.0
+    def read(value = nil)
+      clone.tap do |criteria|
+        criteria.options.merge!(read: value)
       end
     end
 

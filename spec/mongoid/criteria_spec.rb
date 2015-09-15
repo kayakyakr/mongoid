@@ -148,6 +148,21 @@ describe Mongoid::Criteria do
     end
   end
 
+  describe "#read" do
+
+    let(:person) do
+      Person.create
+    end
+
+    let(:criteria) do
+      Person.read(mode: :secondary)
+    end
+
+    it "adds the read option" do
+      expect(criteria.options[:read]).to eq(mode: :secondary)
+    end
+  end
+
   describe "#aggregates" do
 
     context "when provided a single field" do
@@ -1408,13 +1423,6 @@ describe Mongoid::Criteria do
             end
           end
 
-          it "does not eager load the last document" do
-            doc = criteria.last
-            expect_query(1) do
-              expect(doc.person).to eq(person_two)
-            end
-          end
-
           it "returns the first document" do
             expect(document).to eq(post_one)
           end
@@ -1423,7 +1431,7 @@ describe Mongoid::Criteria do
         context "when calling last" do
 
           let!(:criteria) do
-            Post.includes(:person)
+            Post.asc(:_id).includes(:person)
           end
 
           let!(:document) do

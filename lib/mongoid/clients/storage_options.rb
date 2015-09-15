@@ -1,6 +1,6 @@
 # encoding: utf-8
 module Mongoid
-  module Sessions
+  module Clients
     module StorageOptions
       extend ActiveSupport::Concern
 
@@ -12,6 +12,7 @@ module Mongoid
       end
 
       module ClassMethods
+        extend Gem::Deprecate
 
         # Give this model specific custom default storage options.
         #
@@ -27,10 +28,10 @@ module Mongoid
         #     store_in database: "echo_shard"
         #   end
         #
-        # @example Store this model by default in a different session.
+        # @example Store this model by default in a different client.
         #   class Band
         #     include Mongoid::Document
-        #     store_in session: "secondary"
+        #     store_in client: "secondary"
         #   end
         #
         # @example Store this model with a combination of options.
@@ -43,7 +44,7 @@ module Mongoid
         #
         # @option options [ String, Symbol ] :collection The collection name.
         # @option options [ String, Symbol ] :database The database name.
-        # @option options [ String, Symbol ] :session The session name.
+        # @option options [ String, Symbol ] :client The client name.
         #
         # @return [ Class ] The model class.
         #
@@ -74,7 +75,7 @@ module Mongoid
         def storage_options_defaults
           {
             collection: name.collectionize.to_sym,
-            session: :default,
+            client: :default,
             database: -> { configured_database }
           }
         end
@@ -91,24 +92,26 @@ module Mongoid
           __evaluate__(storage_options[:collection])
         end
 
-        # Get the session name for the model.
+        # Get the client name for the model.
         #
-        # @example Get the session name.
-        #   Model.session_name
+        # @example Get the client name.
+        #   Model.client_name
         #
-        # @return [ Symbol ] The name of the session.
+        # @return [ Symbol ] The name of the client.
         #
         # @since 3.0.0
-        def session_name
-          __evaluate__(storage_options[:session])
+        def client_name
+          __evaluate__(storage_options[:client])
         end
+        alias :session_name :client_name
+        deprecate :session_name, :client_name, 2015, 12
 
         # Get the database name for the model.
         #
         # @example Get the database name.
         #   Model.database_name
         #
-        # @return [ Symbol ] The name of the session.
+        # @return [ Symbol ] The name of the client.
         #
         # @since 4.0.0
         def database_name
@@ -136,11 +139,11 @@ module Mongoid
         end
 
         def configured_database
-          session = Mongoid.sessions[session_name]
-          if db = session[:database]
+          client = Mongoid.clients[client_name]
+          if db = client[:database]
             db
-          elsif uri = session[:uri]
-            session[:database] = Mongo::URI.new(uri).database
+          elsif uri = client[:uri]
+            client[:database] = Mongo::URI.new(uri).database
           else
             nil
           end

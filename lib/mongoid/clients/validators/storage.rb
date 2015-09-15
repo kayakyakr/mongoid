@@ -1,13 +1,16 @@
 # encoding: utf-8
 module Mongoid
-  module Sessions
+  module Clients
     module Validators
 
       # Validates the options passed to :store_in.
       module Storage
         extend self
 
-        VALID_OPTIONS = [ :collection, :database, :session ]
+        # The valid options for storage.
+        #
+        # @since 3.0.0
+        VALID_OPTIONS = [ :collection, :database, :client ].freeze
 
         # Validate the options provided to :store_in.
         #

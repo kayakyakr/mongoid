@@ -58,13 +58,14 @@ if (ENV['CI'] == 'travis')
 end
 
 CONFIG = {
-  sessions: {
+  clients: {
     default: {
       database: database_id,
       hosts: [ "#{HOST}:#{PORT}" ],
       options: {
         server_selection_timeout: 0.5,
         max_pool_size: 1,
+        heartbeat_frequency: 180,
         user: MONGOID_ROOT_USER.name,
         password: MONGOID_ROOT_USER.password,
         auth_source: Mongo::Database::ADMIN
@@ -73,16 +74,8 @@ CONFIG = {
   }
 }
 
-def purge_database_alt!
-  session = Mongoid::Sessions.default
-  session.use(database_id_alt)
-  session.collections.each do |collection|
-    collection.drop
-  end
-end
-
 def non_legacy_server?
-  Mongoid::Sessions.default.cluster.servers.first.features.write_command_enabled?
+  Mongoid::Clients.default.cluster.servers.first.features.write_command_enabled?
 end
 
 # Set the database that the spec suite connects to.

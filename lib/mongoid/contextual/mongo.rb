@@ -15,6 +15,11 @@ module Mongoid
       include Relations::Eager
       include Queryable
 
+      # Options constant.
+      #
+      # @since 5.0.0
+      OPTIONS = [ :hint, :limit, :skip, :sort, :batch_size, :max_scan, :snapshot, :comment, :read ].freeze
+
       # @attribute [r] view The Mongo collection view.
       attr_reader :view
 
@@ -220,15 +225,19 @@ module Mongoid
       # @example Get the first document.
       #   context.first
       #
+      # @note Mongoid previously added an _id sort when no sort parameters were
+      #   provided explicitly by the user. This caused bad performance issues
+      #   and was not expected, so #first/#last will no longer guarantee order
+      #   if no sorting parameters are provided. For order guarantees - a sort
+      #   must be explicitly provided.
+      #
       # @return [ Document ] The first document.
       #
       # @since 3.0.0
       def first
         return documents.first if cached? && cache_loaded?
         try_cache(:first) do
-          with_sorting do
-            with_eager_loading(view.first)
-          end
+          with_eager_loading(view.first)
         end
       end
       alias :one :first
@@ -291,7 +300,7 @@ module Mongoid
       end
 
       # Create the new Mongo context. This delegates operations to the
-      # underlying driver - in Mongoid's case Moped.
+      # underlying driver.
       #
       # @example Create the new context.
       #   Mongo.new(criteria)
@@ -313,6 +322,12 @@ module Mongoid
       #
       # @example Get the last document.
       #   context.last
+      #
+      # @note Mongoid previously added an _id sort when no sort parameters were
+      #   provided explicitly by the user. This caused bad performance issues
+      #   and was not expected, so #first/#last will no longer guarantee order
+      #   if no sorting parameters are provided. For order guarantees - a sort
+      #   must be explicitly provided.
       #
       # @return [ Document ] The last document.
       #
@@ -523,7 +538,7 @@ module Mongoid
       # @since 3.1.0
       def apply_options
         apply_fields
-        [ :hint, :limit, :skip, :sort, :batch_size, :max_scan ].each do |name|
+        OPTIONS.each do |name|
           apply_option(name)
         end
         if criteria.options[:timeout] == false
@@ -545,29 +560,9 @@ module Mongoid
         end
       end
 
-      # Apply an ascending id sort for use with #first queries, only if no
-      # other sorting is provided.
-      #
-      # @api private
-      #
-      # @example Apply the id sorting params to the given block
-      #   context.with_sorting
-      #
-      # @since 3.0.0
-      def with_sorting
-        begin
-          unless criteria.options.has_key?(:sort)
-            @view = view.sort(_id: 1)
-          end
-          yield
-        ensure
-          apply_option(:sort)
-        end
-      end
-
       # Map the inverse sort symbols to the correct MongoDB values.
       #
-      #  @api private
+      # @api private
       #
       # @example Apply the inverse sorting params to the given block
       #   context.with_inverse_sorting
@@ -577,8 +572,6 @@ module Mongoid
         begin
           if spec = criteria.options[:sort]
             @view = view.sort(Hash[spec.map{|k, v| [k, -1*v]}])
-          else
-            @view = view.sort(_id: -1)
           end
           yield
         ensure
@@ -642,7 +635,7 @@ module Mongoid
       # @example Get the documents for iteration.
       #   context.documents_for_iteration
       #
-      # @return [ Array<Document>, Moped::Query ] The docs to iterate.
+      # @return [ Array<Document>, Mongo::Collection::View ] The docs to iterate.
       #
       # @since 3.0.0
       def documents_for_iteration

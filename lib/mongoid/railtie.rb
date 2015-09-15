@@ -1,6 +1,4 @@
 # encoding: utf-8
-require "mongoid"
-require "mongoid/config"
 require "mongoid/railties/document"
 require "rails"
 require "rails/mongoid"
@@ -60,7 +58,7 @@ module Rails
         if config_file.file?
           begin
             ::Mongoid.load!(config_file)
-          rescue ::Mongoid::Errors::NoSessionsConfig => e
+          rescue ::Mongoid::Errors::NoClientsConfig => e
             handle_configuration_error(e)
           rescue ::Mongoid::Errors::NoDefaultSession => e
             handle_configuration_error(e)
